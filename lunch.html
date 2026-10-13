@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점심 메뉴 룰렛</title>
+
+<!-- 글꼴: Noto Sans KR (CDN) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+  /* =========================================================
+     공통 디자인 변수
+     - 흰 배경 + 남색(#1f3a6d) 포인트 + 둥근 카드
+     ========================================================= */
+  :root {
+    --navy: #1f3a6d;          /* 메인 색(남색) */
+    --navy-dark: #172c54;     /* 버튼 눌림/호버용 진한 남색 */
+    --navy-soft: #f6efe4;     /* 배지·카운트다운 배경(따뜻한 크림색) */
+    --accent: #e07a5f;        /* 보조 포인트(테라코타) - 화살표, 강조 밑줄 */
+    --accent-soft: #fdeee6;   /* 연한 테라코타 배경 */
+    --text: #2e2a28;          /* 기본 글자색(따뜻한 먹색) */
+    --muted: #857a6e;         /* 보조 글자색(따뜻한 회갈색) */
+    --line: #eee4d6;          /* 테두리 색(베이지) */
+    --bg: #ffffff;            /* 페이지 배경(흰색) */
+    --card: #fffdf9;          /* 카드 배경(아주 연한 크림) */
+    --danger: #c9533e;        /* 삭제/경고 색 */
+    --warn-bg: #fff3e3;       /* 안내 배경 */
+    --warn-text: #9a5410;     /* 안내 글자색 */
+    --radius: 20px;           /* 카드 모서리 둥글기 */
+    --shadow: 0 8px 28px rgba(120, 84, 48, 0.08);   /* 갈색 기운의 부드러운 그림자 */
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 전체 폭 제한 컨테이너 */
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 16px 24px;
+  }
+
+  /* ---------- 맨 위 왼쪽: 업무 도구 모음 링크 ---------- */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--navy);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 15px;
+    padding: 6px 12px;
+    margin-left: -12px;
+    border-radius: 999px;
+    transition: background .15s;
+  }
+  .back-link:hover,
+  .back-link:focus-visible { background: var(--navy-soft); outline: none; }
+
+  /* ---------- 제목 영역 ---------- */
+  .page-head {
+    text-align: center;
+    margin: 8px 0 24px;
+  }
+  .page-head h1 {
+    margin: 0;
+    font-size: clamp(26px, 4vw, 36px);
+    font-weight: 900;
+    color: var(--navy);
+    letter-spacing: -0.5px;
+  }
+  .page-head h1::after {      /* 제목 아래 짧은 테라코타 밑줄 */
+    content: '';
+    display: block;
+    width: 48px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .page-head p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  /* ---------- 레이아웃: PC는 좌(입력)·우(룰렛), 휴대폰은 위아래 ---------- */
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);   /* 기본(휴대폰): 한 줄 (minmax(0,…)로 화면 밖으로 넘치지 않게) */
+    gap: 20px;
+  }
+  .layout > * { min-width: 0; }   /* 카드 안 내용 때문에 카드가 화면보다 넓어지는 것 방지 */
+  @media (min-width: 900px) {
+    .layout {
+      grid-template-columns: 340px minmax(0, 1fr);  /* PC: 왼쪽 입력, 오른쪽 룰렛 */
+      align-items: start;
+    }
+  }
+
+  /* ---------- 둥근 카드 ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  /* 메뉴 개수 표시 배지 */
+  .count-badge {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    background: var(--navy-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* ---------- 버튼 공통 ---------- */
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    transition: background .15s, transform .08s, opacity .15s;
+  }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button:disabled { cursor: not-allowed; opacity: 0.45; }
+  button:focus-visible { outline: 3px solid rgba(31, 58, 109, 0.35); outline-offset: 2px; }
+
+  .btn-primary {
+    background: var(--navy);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--navy-dark); }
+
+  .btn-ghost {
+    background: #fffdf9;
+    color: var(--navy);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--navy-soft); border-color: #e3d3bd; }
+
+  /* ---------- 메뉴 입력 ---------- */
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .input-row input {
+    flex: 1;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 16px;            /* 16px 이상이어야 iOS에서 확대되지 않음 */
+    padding: 12px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+    /* 입력창은 흰색으로 두어 카드(크림)와 구분 */
+  }
+  .input-row input:focus {
+    outline: none;
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(31, 58, 109, 0.12);
+  }
+  .input-row input:disabled { background: #f7f2ea; }
+  .input-row button {
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  /* 안내 문구 */
+  .notice {
+    margin: 10px 0 0;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--warn-bg);
+    color: var(--warn-text);
+  }
+  .notice[hidden] { display: none; }
+
+  /* 메뉴 목록 */
+  .menu-list {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color .15s;
+  }
+  .menu-item:hover { border-color: #e3d3bd; }
+  .menu-dot {               /* 룰렛 칸 색과 같은 색 점 */
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .menu-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .btn-delete {
+    background: #fff;
+    color: var(--danger);
+    border: 1px solid #f2d6cc;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 9px;
+  }
+  .btn-delete:hover:not(:disabled) { background: var(--accent-soft); }
+
+  .empty-text {
+    margin: 16px 0 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    padding: 18px 0;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+  }
+
+  .clear-all {
+    margin-top: 14px;
+    width: 100%;
+    padding: 11px 0;
+    font-size: 14px;
+  }
+
+  /* ---------- 룰렛 영역 ---------- */
+  .roulette-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .stage {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;           /* 좁은 화면에서는 카운트다운이 아래로 내려감 */
+  }
+
+  /* 룰렛(캔버스)과 화살표를 감싸는 상자 */
+  .wheel-box {
+    position: relative;
+    width: min(100%, 460px);
+    aspect-ratio: 1 / 1;
+  }
+  #wheel {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  /* 오른쪽 가운데에 고정된 화살표(◀) - 룰렛 안쪽을 가리킴 */
+  .pointer {
+    position: absolute;
+    top: 50%;
+    right: -12px;
+    transform: translateY(-50%);
+    font-size: 40px;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 2px 0 0 #fff, 3px 0 8px rgba(120, 60, 30, 0.35);
+    z-index: 2;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* 카운트다운 상자 */
+  .countdown {
+    width: 140px;
+    min-height: 140px;
+    border-radius: var(--radius);
+    background: var(--navy-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 12px;
+  }
+  .countdown-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .countdown-num {
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+  .countdown-idle {
+    font-size: 15px;
+    color: var(--navy);
+    font-weight: 700;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  /* 숫자가 바뀔 때 톡 튀는 효과 */
+  .countdown-num.pop { animation: pop .35s ease-out; }
+  @keyframes pop {
+    0%   { transform: scale(1.5); opacity: .4; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  @media (max-width: 600px) {
+    .stage { gap: 16px; }
+    .countdown {
+      width: 100%;
+      min-height: 0;
+      flex-direction: row;
+      gap: 12px;
+      padding: 10px 16px;
+    }
+    .countdown-num { font-size: 48px; }
+    .countdown-idle { margin-top: 0; }
+  }
+
+  .spin-btn {
+    margin-top: 22px;
+    width: min(100%, 320px);
+    padding: 16px 0;
+    font-size: 19px;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(31, 58, 109, 0.22);
+  }
+  .spin-notice { text-align: center; }
+
+  /* ---------- 최근 결과 기록 ---------- */
+  .history-card { margin-top: 20px; }
+  .history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .history-list li {
+    background: var(--navy-soft);
+    color: var(--navy);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .history-list li:first-child {     /* 가장 최근 결과 강조 */
+    background: var(--navy);
+    color: #fff;
+  }
+  .history-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ---------- 결과 팝업 ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(46, 36, 28, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 50;
+  }
+  .overlay[hidden] { display: none; }
+  .popup {
+    background: #fffaf3;
+    border-radius: 24px;
+    width: min(100%, 440px);
+    padding: 36px 26px 26px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    animation: popupIn .4s cubic-bezier(.2, 1.3, .4, 1);
+  }
+  @keyframes popupIn {
+    0%   { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+  .popup-emoji { font-size: 48px; line-height: 1; }
+  .popup-title {
+    margin: 14px 0 0;
+    font-size: clamp(26px, 6vw, 34px);
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.35;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .popup-title strong {
+    color: var(--navy);
+    /* 당첨 메뉴 아래 테라코타 형광펜 효과 */
+    background: linear-gradient(transparent 62%, rgba(224, 122, 95, 0.28) 62%);
+    padding: 0 2px;
+  }
+  .popup-buttons {
+    margin-top: 26px;
+    display: flex;
+    gap: 10px;
+  }
+  .popup-buttons button {
+    flex: 1;
+    padding: 14px 0;
+    font-size: 16px;
+  }
+
+  /* 꽃가루 캔버스: 화면 전체를 덮지만 클릭은 통과 */
+  #confetti {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 60;
+  }
+
+  /* ---------- 맨 아래 안내 문구 ---------- */
+  .footer-note {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* 화면 낭독기 전용 텍스트 */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    border: 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 맨 위 왼쪽: 업무 도구 모음으로 돌아가는 링크 -->
+  <nav class="top-nav">
+    <a class="back-link" href="index.html">← 업무 도구 모음</a>
+  </nav>
+
+  <header class="page-head">
+    <h1>🍱 점심 메뉴 룰렛</h1>
+    <p>고민은 그만! 룰렛이 오늘 점심을 정해 드려요.</p>
+  </header>
+
+  <main class="layout">
+    <!-- ===================== 왼쪽: 메뉴 입력 ===================== -->
+    <section class="card" aria-labelledby="menuTitle">
+      <h2 id="menuTitle">
+        메뉴 입력
+        <span class="count-badge" id="countText">현재 0 / 10개</span>
+      </h2>
+
+      <div class="input-row">
+        <label for="menuInput" class="sr-only">메뉴 이름</label>
+        <input id="menuInput" type="text" maxlength="20" placeholder="메뉴 이름을 입력하세요" autocomplete="off">
+        <button id="addBtn" class="btn-primary" type="button">추가</button>
+      </div>
+
+      <!-- 입력 관련 안내 (중복, 빈칸 등) -->
+      <p class="notice" id="inputNotice" role="status" hidden></p>
+      <!-- 10개 가득 찼을 때 안내 -->
+      <p class="notice" id="limitNotice" hidden>메뉴는 최대 10개까지 입력할 수 있어요</p>
+
+      <ul class="menu-list" id="menuList"></ul>
+      <p class="empty-text" id="emptyText" hidden>아직 메뉴가 없어요. 메뉴를 추가해 주세요.</p>
+
+      <button id="clearBtn" class="btn-ghost clear-all" type="button">전체 삭제</button>
+    </section>
+
+    <!-- ===================== 오른쪽: 룰렛 ===================== -->
+    <section class="card roulette-card" aria-label="룰렛">
+      <div class="stage">
+        <div class="wheel-box">
+          <div class="pointer" aria-hidden="true">◀</div>
+          <canvas id="wheel" aria-label="점심 메뉴 룰렛판"></canvas>
+        </div>
+
+        <!-- 룰렛 옆 카운트다운 -->
+        <div class="countdown" aria-live="polite">
+          <span class="countdown-label">남은 시간</span>
+          <span class="countdown-num" id="countNum" hidden>5</span>
+          <span class="countdown-idle" id="countIdle">준비<br>완료!</span>
+        </div>
+      </div>
+
+      <button id="spinBtn" class="btn-primary spin-btn" type="button">룰렛 시작</button>
+      <p class="notice spin-notice" id="spinNotice" role="status" hidden></p>
+    </section>
+  </main>
+
+  <!-- ===================== 아래: 최근 결과 기록 ===================== -->
+  <section class="card history-card" aria-labelledby="historyTitle">
+    <h2 id="historyTitle">최근 결과</h2>
+    <ul class="history-list" id="historyList"></ul>
+    <p class="history-empty" id="historyEmpty">아직 기록이 없어요. 룰렛을 돌려 보세요!</p>
+  </section>
+
+  <!-- 맨 아래 안내 문구 -->
+  <footer class="footer-note">
+    입력한 내용은 이 브라우저 안에서만 처리되며 어디에도 저장·전송되지 않습니다.
+  </footer>
+</div>
+
+<!-- 결과 팝업 -->
+<div class="overlay" id="overlay" hidden>
+  <div class="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+    <div class="popup-emoji" aria-hidden="true">🎉</div>
+    <p class="popup-title" id="popupTitle">오늘 점심은 <strong id="popupMenu"></strong>!</p>
+    <div class="popup-buttons">
+      <button id="againBtn" class="btn-primary" type="button">다시 돌리기</button>
+      <button id="closeBtn" class="btn-ghost" type="button">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 꽃가루 효과용 캔버스 -->
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+/* ===================================================================
+   점심 메뉴 룰렛
+   - 모든 데이터는 자바스크립트 변수에만 보관합니다.
+     (localStorage 등 브라우저 저장소 사용 안 함, 서버 전송 없음)
+   =================================================================== */
+
+/* ---------------- 설정값 ---------------- */
+const MAX_MENUS = 10;          // 메뉴 최대 개수
+const MIN_MENUS = 2;           // 룰렛을 돌리기 위한 최소 개수
+const SPIN_DURATION = 5000;    // 회전 시간(밀리초) = 정확히 5초
+const EXTRA_TURNS = 7;         // 멈추기 전까지 최소로 도는 바퀴 수
+const HISTORY_LIMIT = 5;       // 최근 결과 기록 개수
+const TAU = Math.PI * 2;       // 한 바퀴(360도)를 라디안으로
+
+/* 룰렛 칸 색상(10개, 서로 모두 다른 밝은 색)
+   - text: 칸 위 글자색(어두운 칸은 흰색, 밝은 칸은 남색) */
+const COLORS = [
+  { bg: '#1f3a6d', text: '#ffffff' }, // 남색(메인)
+  { bg: '#f2b84b', text: '#1f3a6d' }, // 머스터드
+  { bg: '#e07a5f', text: '#ffffff' }, // 테라코타
+  { bg: '#f4d9b8', text: '#1f3a6d' }, // 살구 크림
+  { bg: '#4f6f9f', text: '#ffffff' }, // 차분한 파랑
+  { bg: '#e9a37f', text: '#1f3a6d' }, // 복숭아
+  { bg: '#7d9d85', text: '#ffffff' }, // 세이지
+  { bg: '#f6e3a1', text: '#1f3a6d' }, // 버터
+  { bg: '#a0616a', text: '#ffffff' }, // 로즈우드
+  { bg: '#cfa77a', text: '#1f3a6d' }, // 카라멜
+];
+
+/* ---------------- 상태(데이터) ---------------- */
+// 처음 열었을 때 들어 있는 예시 메뉴 5개
+let menus = ['김치찌개', '돈가스', '비빔밥', '짜장면', '냉면'];
+let rotation = 0;         // 룰렛의 현재 회전 각도(라디안, 시계 방향)
+let isSpinning = false;   // 룰렛이 돌아가는 중인지 여부
+let history = [];         // 최근 결과 [{ time: '12:03', menu: '김치찌개' }, ...]
+
+/* ---------------- 화면 요소 ---------------- */
+const $ = (id) => document.getElementById(id);
+const menuInput   = $('menuInput');
+const addBtn      = $('addBtn');
+const clearBtn    = $('clearBtn');
+const menuList    = $('menuList');
+const emptyText   = $('emptyText');
+const countText   = $('countText');
+const inputNotice = $('inputNotice');
+const limitNotice = $('limitNotice');
+const spinBtn     = $('spinBtn');
+const spinNotice  = $('spinNotice');
+const countNum    = $('countNum');
+const countIdle   = $('countIdle');
+const historyList = $('historyList');
+const historyEmpty= $('historyEmpty');
+const overlay     = $('overlay');
+const popupMenu   = $('popupMenu');
+const againBtn    = $('againBtn');
+const closeBtn    = $('closeBtn');
+const wheelCanvas = $('wheel');
+const wheelCtx    = wheelCanvas.getContext('2d');
+const confettiCanvas = $('confetti');
+const confettiCtx    = confettiCanvas.getContext('2d');
+
+/* ===================================================================
+   1. 안내 문구 표시
+   =================================================================== */
+let inputNoticeTimer = null;
+let spinNoticeTimer = null;
+
+// 입력 관련 안내를 잠깐(2.5초) 보여줍니다.
+function showInputNotice(message) {
+  inputNotice.textContent = message;
+  inputNotice.hidden = false;
+  clearTimeout(inputNoticeTimer);
+  inputNoticeTimer = setTimeout(() => { inputNotice.hidden = true; }, 2500);
+}
+
+// 룰렛 버튼 아래 안내를 잠깐(2.5초) 보여줍니다.
+function showSpinNotice(message) {
+  spinNotice.textContent = message;
+  spinNotice.hidden = false;
+  clearTimeout(spinNoticeTimer);
+  spinNoticeTimer = setTimeout(() => { spinNotice.hidden = true; }, 2500);
+}
+
+/* ===================================================================
+   2. 메뉴 추가 / 삭제 / 전체 삭제
+   =================================================================== */
+function addMenu() {
+  if (isSpinning) return;                       // 회전 중에는 추가 불가
+  if (menus.length >= MAX_MENUS) return;        // 10개면 더 이상 추가 불가
+
+  const name = menuInput.value.trim();          // 앞뒤 공백 제거
+
+  // 빈칸이나 공백만 입력한 경우: 추가하지 않음
+  if (name === '') {
+    menuInput.value = '';
+    menuInput.focus();
+    return;
+  }
+
+  // 이미 있는 메뉴와 같은 이름이면 추가하지 않고 안내
+  if (menus.includes(name)) {
+    showInputNotice('이미 있는 메뉴예요');
+    menuInput.select();
+    return;
+  }
+
+  menus.push(name);
+  menuInput.value = '';
+  inputNotice.hidden = true;
+  spinNotice.hidden = true;
+  render();
+
+  // 아직 10개가 안 되었으면 바로 다음 메뉴를 입력할 수 있게 포커스
+  if (menus.length < MAX_MENUS) menuInput.focus();
+}
+
+function deleteMenu(index) {
+  if (isSpinning) return;                       // 회전 중에는 삭제 불가
+  menus.splice(index, 1);
+  render();
+}
+
+function clearMenus() {
+  if (isSpinning) return;                       // 회전 중에는 삭제 불가
+  if (menus.length === 0) return;
+  menus = [];
+  inputNotice.hidden = true;
+  render();
+  menuInput.focus();
+}
+
+/* ===================================================================
+   3. 화면 다시 그리기 (목록, 개수, 버튼 상태, 룰렛)
+   =================================================================== */
+function render() {
+  renderMenuList();
+  updateControls();
+  drawWheel();
+}
+
+// 메뉴 목록 그리기
+function renderMenuList() {
+  menuList.innerHTML = '';
+
+  menus.forEach((name, i) => {
+    const li = document.createElement('li');
+    li.className = 'menu-item';
+
+    // 룰렛 칸 색과 같은 색 점
+    const dot = document.createElement('span');
+    dot.className = 'menu-dot';
+    dot.style.background = COLORS[i % COLORS.length].bg;
+
+    // 메뉴 이름 (textContent로 넣어 HTML 삽입을 막음)
+    const label = document.createElement('span');
+    label.className = 'menu-name';
+    label.textContent = name;
+    label.title = name;
+
+    // 삭제 버튼
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn-delete';
+    del.textContent = '삭제';
+    del.setAttribute('aria-label', `${name} 삭제`);
+    del.addEventListener('click', () => deleteMenu(i));
+
+    li.append(dot, label, del);
+    menuList.appendChild(li);
+  });
+
+  emptyText.hidden = menus.length > 0;
+}
+
+// 개수 표시와 버튼/입력창 활성화 상태 갱신
+function updateControls() {
+  const count = menus.length;
+  const isFull = count >= MAX_MENUS;
+
+  countText.textContent = `현재 ${count} / ${MAX_MENUS}개`;
+
+  // 10개가 되면 입력창과 [추가] 버튼 비활성화 + 안내
+  limitNotice.hidden = !isFull;
+  menuInput.disabled = isFull || isSpinning;
+  addBtn.disabled = isFull || isSpinning;
+
+  // 회전 중에는 [룰렛 시작], [삭제], [전체 삭제] 버튼도 막음
+  // (메뉴가 2개 미만이어도 [룰렛 시작]은 눌러서 안내를 볼 수 있게 둠)
+  spinBtn.disabled = isSpinning;
+  clearBtn.disabled = isSpinning || count === 0;
+  menuList.querySelectorAll('.btn-delete').forEach((btn) => {
+    btn.disabled = isSpinning;
+  });
+
+  menuInput.placeholder = isFull ? '메뉴가 가득 찼어요' : '메뉴 이름을 입력하세요';
+}
+
+/* ===================================================================
+   4. 룰렛 그리기 (canvas)
+   - 각도 기준: 화면 맨 위(12시 방향)를 0으로, 시계 방향으로 증가
+   - 화살표는 오른쪽(3시 방향) = 90도(π/2) 위치에 있음
+   - i번째 칸은 [rotation + i*칸크기, rotation + (i+1)*칸크기] 범위를 차지
+   =================================================================== */
+let wheelSize = 0;   // 캔버스의 화면상 크기(CSS 픽셀)
+
+// 캔버스를 화면 크기에 맞추고, 레티나 화면에서도 선명하게 보이도록 설정
+function resizeWheel() {
+  const rect = wheelCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  wheelSize = Math.max(1, Math.floor(rect.width));
+  wheelCanvas.width = Math.round(wheelSize * dpr);
+  wheelCanvas.height = Math.round(wheelSize * dpr);
+  wheelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);   // 이후에는 CSS 픽셀 단위로 그림
+  drawWheel();
+}
+
+// 글자가 칸 밖으로 넘치면 뒤를 "…"으로 줄임
+function fitText(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) {
+    t = t.slice(0, -1);
+  }
+  return t + '…';
+}
+
+function drawWheel() {
+  const ctx = wheelCtx;
+  const size = wheelSize;
+  if (!size) return;
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2 - 8;     // 바깥 테두리 여유
+  const n = menus.length;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // 바깥 테두리(남색 링)
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 5, 0, TAU);
+  ctx.fillStyle = '#1f3a6d';
+  ctx.fill();
+
+  // 메뉴가 하나도 없을 때: 빈 원 + 안내
+  if (n === 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, TAU);
+    ctx.fillStyle = '#f7f0e6';
+    ctx.fill();
+    ctx.fillStyle = '#857a6e';
+    ctx.font = `500 ${Math.max(14, size * 0.045)}px "Noto Sans KR", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('메뉴를 추가해 주세요', cx, cy + radius * 0.35);
+    drawHub(ctx, cx, cy, size);
+    return;
+  }
+
+  const seg = TAU / n;   // 칸 하나의 각도(모든 칸이 같은 크기)
+
+  // 메뉴 개수에 따라 글자 크기 조절
+  const fontSize = Math.max(12, Math.min(size * 0.06, size * (n <= 4 ? 0.058 : n <= 7 ? 0.05 : 0.042)));
+
+  for (let i = 0; i < n; i++) {
+    // canvas의 arc 각도는 오른쪽(3시)이 0이므로, 12시 기준으로 맞추려고 -90도(-π/2)를 더함
+    const start = -Math.PI / 2 + rotation + i * seg;
+    const end = start + seg;
+    const color = COLORS[i % COLORS.length];
+
+    // 칸(부채꼴) 채우기
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = color.bg;
+    ctx.fill();
+
+    // 칸 사이 흰 구분선
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#fffaf3';   // 크림색 구분선
+    ctx.stroke();
+
+    // 메뉴 이름: 칸의 가운데 각도 방향으로 글자를 눕혀서 씀
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = color.text;
+    ctx.font = `700 ${fontSize}px "Noto Sans KR", sans-serif`;
+    ctx.textBaseline = 'middle';
+    // 글자가 들어갈 수 있는 최대 폭(가운데 원과 바깥 테두리 사이)
+    const maxTextWidth = radius * 0.62;
+    const label = fitText(ctx, menus[i], maxTextWidth);
+    const mid = start + seg / 2;   // 칸 가운데 각도
+
+    // 글자는 항상 "가운데 → 바깥" 한 방향으로 씀 (돌아가는 중에 뒤집히지 않음)
+    // 화살표가 오른쪽(3시)에 있으므로, 멈췄을 때 당첨 칸 글자는 가로로 바로 읽힘
+    ctx.rotate(mid);
+    ctx.textAlign = 'right';
+    ctx.fillText(label, radius - 16, 0);
+    ctx.restore();
+  }
+
+  drawHub(ctx, cx, cy, size);
+}
+
+// 룰렛 가운데 동그란 장식
+function drawHub(ctx, cx, cy, size) {
+  const r = size * 0.1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, TAU);
+  ctx.fillStyle = '#fffaf3';   // 크림색 테두리 원
+  ctx.shadowColor = 'rgba(120, 84, 48, 0.3)';
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.78, 0, TAU);
+  ctx.fillStyle = '#1f3a6d';
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${Math.max(12, size * 0.042)}px "Noto Sans KR", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('점심', cx, cy + 1);
+}
+
+/* ===================================================================
+   5. 룰렛 돌리기
+   =================================================================== */
+
+// 감속 함수(easeOutQuart): 처음엔 아주 빠르고 끝으로 갈수록 부드럽게 느려짐
+function easeOutQuart(t) {
+  return 1 - Math.pow(1 - t, 4);
+}
+
+function startSpin() {
+  if (isSpinning) return;
+
+  // 메뉴가 2개 미만이면 시작하지 않고 안내
+  if (menus.length < MIN_MENUS) {
+    showSpinNotice('메뉴를 2개 이상 입력해 주세요');
+    return;
+  }
+
+  closePopup();
+  spinNotice.hidden = true;
+  inputNotice.hidden = true;
+
+  const n = menus.length;
+  const seg = TAU / n;
+
+  /* (1) 버튼을 누르는 순간 당첨 메뉴를 먼저 무작위로 정함 */
+  const winnerIndex = Math.floor(Math.random() * n);
+  const winnerName = menus[winnerIndex];
+
+  /* (2) 화살표가 당첨 칸의 "안쪽"을 가리키도록 목표 각도 계산
+     - 칸 경계에 걸리지 않게, 칸 안의 15% ~ 85% 지점 중 무작위 위치를 고름
+     - 룰렛 기준으로 그 지점의 각도 = winnerIndex*seg + offset
+     - 화살표는 오른쪽(3시 방향, 90도 = π/2)에 있으므로, 그 지점이 화살표에 오려면
+       rotation + 그 지점 각도 ≡ π/2 (mod 360도) → rotation ≡ π/2 - (그 지점 각도) */
+  const offset = seg * (0.15 + Math.random() * 0.7);
+  const pointAngle = winnerIndex * seg + offset;
+  const POINTER_ANGLE = Math.PI / 2;                                         // 화살표 위치(3시)
+  const targetMod = (((POINTER_ANGLE - pointAngle) % TAU) + TAU) % TAU;     // 0 ~ 2π로 맞춘 목표 각도
+  const currentMod = ((rotation % TAU) + TAU) % TAU;           // 현재 각도도 0 ~ 2π로
+  const delta = (targetMod - currentMod + TAU) % TAU;          // 시계 방향으로 더 돌아야 할 각도
+
+  const startRotation = rotation;
+  const endRotation = rotation + EXTRA_TURNS * TAU + delta;    // 여러 바퀴 + 남은 각도
+
+  /* (3) 회전 중에는 버튼 잠그기 */
+  isSpinning = true;
+  updateControls();
+
+  // 카운트다운 표시 시작
+  // (직전 회전의 '1'이 한 프레임 보이지 않도록 숫자를 먼저 5로 바꾼 뒤 보여줌)
+  countNum.textContent = '5';
+  countIdle.hidden = true;
+  countNum.hidden = false;
+  let lastShown = null;
+
+  const startTime = performance.now();
+
+  /* (4) 매 프레임마다 시간에 맞춰 각도를 계산해서 다시 그림
+     - 경과 시간 기준으로 계산하므로 정확히 5초 뒤에 멈춤 */
+  function frame(now) {
+    // requestAnimationFrame이 넘겨주는 시각이 시작 시각보다 아주 조금 앞설 수 있어서
+    // (그러면 카운트다운에 6이 잠깐 보임) 0 아래로 내려가지 않게 막음
+    const elapsed = Math.max(0, now - startTime);
+    const t = Math.min(elapsed / SPIN_DURATION, 1);            // 진행률 0 ~ 1
+
+    rotation = startRotation + (endRotation - startRotation) * easeOutQuart(t);
+    drawWheel();
+
+    // 카운트다운: 5, 4, 3, 2, 1
+    const remain = Math.min(5, Math.max(1, Math.ceil((SPIN_DURATION - elapsed) / 1000)));
+    if (remain !== lastShown) {
+      lastShown = remain;
+      countNum.textContent = remain;
+      countNum.classList.remove('pop');
+      void countNum.offsetWidth;                               // 애니메이션 재시작용
+      countNum.classList.add('pop');
+    }
+
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      // 오차 없이 목표 각도에 정확히 멈추게 고정
+      rotation = endRotation % TAU;
+      drawWheel();
+      finishSpin(winnerName);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+// 회전이 끝났을 때 처리
+function finishSpin(winnerName) {
+  isSpinning = false;
+  updateControls();
+
+  // 카운트다운 원래대로
+  countNum.hidden = true;
+  countIdle.hidden = false;
+
+  addHistory(winnerName);
+  openPopup(winnerName);
+  launchConfetti();
+}
+
+/* ===================================================================
+   6. 최근 결과 기록 (최대 5개, 최신이 맨 앞)
+   =================================================================== */
+function addHistory(menu) {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  history.unshift({ time: `${hh}:${mm}`, menu });
+  if (history.length > HISTORY_LIMIT) history.length = HISTORY_LIMIT;
+  renderHistory();
+}
+
+function renderHistory() {
+  historyList.innerHTML = '';
+  history.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = `${item.time} - ${item.menu}`;
+    historyList.appendChild(li);
+  });
+  historyEmpty.hidden = history.length > 0;
+}
+
+/* ===================================================================
+   7. 결과 팝업
+   =================================================================== */
+function openPopup(menu) {
+  popupMenu.textContent = menu;
+  overlay.hidden = false;
+  againBtn.focus();
+}
+
+function closePopup() {
+  overlay.hidden = true;
+}
+
+/* ===================================================================
+   8. 꽃가루 효과 (외부 라이브러리 없이 canvas로 직접 구현)
+   - 조각마다 위치, 속도, 회전, 색, 모양을 가지고
+     중력과 공기 저항을 받아 떨어지도록 계산
+   =================================================================== */
+const CONFETTI_COLORS = ['#1f3a6d', '#f2b84b', '#e07a5f', '#e9a37f', '#7d9d85', '#f6e3a1', '#a0616a', '#4f6f9f'];
+let confettiPieces = [];
+let confettiRunning = false;
+
+function resizeConfetti() {
+  const dpr = window.devicePixelRatio || 1;
+  confettiCanvas.width = Math.round(window.innerWidth * dpr);
+  confettiCanvas.height = Math.round(window.innerHeight * dpr);
+  confettiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function launchConfetti() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const count = w < 600 ? 120 : 200;
+
+  for (let i = 0; i < count; i++) {
+    // 화면 양쪽 아래에서 위로 터지듯 발사 + 위에서 흩날리는 조각을 섞음
+    const fromLeft = i % 3 === 0;
+    const fromRight = i % 3 === 1;
+    let x, y, vx, vy;
+    if (fromLeft || fromRight) {
+      x = fromLeft ? -10 : w + 10;
+      y = h * 0.7;
+      vx = (fromLeft ? 1 : -1) * (6 + Math.random() * 9);
+      vy = -(12 + Math.random() * 10);
+    } else {
+      x = Math.random() * w;
+      y = -20 - Math.random() * h * 0.3;
+      vx = (Math.random() - 0.5) * 4;
+      vy = 2 + Math.random() * 3;
+    }
+    confettiPieces.push({
+      x, y, vx, vy,
+      size: 6 + Math.random() * 7,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      angle: Math.random() * TAU,
+      spin: (Math.random() - 0.5) * 0.3,
+      shape: Math.random() < 0.6 ? 'rect' : 'circle',
+      wobble: Math.random() * TAU,     // 좌우로 하늘거리는 효과용
+      life: 0,
+    });
+  }
+
+  if (!confettiRunning) {
+    confettiRunning = true;
+    requestAnimationFrame(updateConfetti);
+  }
+}
+
+function updateConfetti() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  confettiCtx.clearRect(0, 0, w, h);
+
+  confettiPieces.forEach((p) => {
+    p.vy += 0.35;                 // 중력
+    p.vx *= 0.985;                // 공기 저항
+    p.vy *= 0.985;
+    if (p.vy > 6) p.vy = 6;       // 최대 낙하 속도 제한(천천히 흩날리게)
+    p.wobble += 0.1;
+    p.x += p.vx + Math.sin(p.wobble) * 0.8;
+    p.y += p.vy;
+    p.angle += p.spin;
+    p.life++;
+
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate(p.angle);
+    confettiCtx.fillStyle = p.color;
+    if (p.shape === 'rect') {
+      // 납작한 직사각형을 세로로 늘였다 줄였다 해서 뒤집히는 느낌을 냄
+      const flip = Math.abs(Math.cos(p.wobble));
+      confettiCtx.fillRect(-p.size / 2, -p.size * 0.3 * flip, p.size, p.size * 0.6 * flip + 1);
+    } else {
+      confettiCtx.beginPath();
+      confettiCtx.arc(0, 0, p.size / 2.6, 0, TAU);
+      confettiCtx.fill();
+    }
+    confettiCtx.restore();
+  });
+
+  // 화면 아래로 사라졌거나 너무 오래된 조각은 제거
+  confettiPieces = confettiPieces.filter((p) => p.y < h + 40 && p.life < 600);
+
+  if (confettiPieces.length > 0) {
+    requestAnimationFrame(updateConfetti);
+  } else {
+    confettiRunning = false;
+    confettiCtx.clearRect(0, 0, w, h);
+  }
+}
+
+/* ===================================================================
+   9. 이벤트 연결
+   =================================================================== */
+addBtn.addEventListener('click', addMenu);
+
+// Enter 키로 추가 (한글 입력 조합 중 Enter는 무시해서 중복 추가 방지)
+menuInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+    e.preventDefault();
+    addMenu();
+  }
+});
+
+clearBtn.addEventListener('click', clearMenus);
+spinBtn.addEventListener('click', startSpin);
+
+// 팝업 버튼
+againBtn.addEventListener('click', () => {
+  closePopup();
+  startSpin();
+});
+closeBtn.addEventListener('click', () => {
+  closePopup();
+  spinBtn.focus();
+});
+
+// 팝업 바깥(어두운 배경)을 누르거나 Esc 키를 누르면 닫기
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) closePopup();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !overlay.hidden) closePopup();
+});
+
+// 화면 크기가 바뀌면 룰렛과 꽃가루 캔버스 크기 다시 맞추기
+window.addEventListener('resize', () => {
+  resizeWheel();
+  resizeConfetti();
+});
+
+/* ===================================================================
+   10. 처음 시작
+   =================================================================== */
+renderHistory();
+render();
+resizeWheel();
+resizeConfetti();
+
+// 웹 글꼴(Noto Sans KR)을 다 불러오면 룰렛 글자를 다시 그려서 글꼴을 적용
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(drawWheel);
+}
+</script>
+</body>
+</html>
